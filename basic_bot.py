@@ -6,7 +6,10 @@ client = OpenAI(
     base_url="https://api.groq.com/openai/v1",
 )
 
-SYSTEM_PROMPT = "You are a helpful chatbot."
+SYSTEM_PROMPT = """
+You are StudyBot.
+You explain AI concepts clearly and step by step.
+"""
 
 messages = [
     {"role": "system", "content": SYSTEM_PROMPT}
@@ -19,16 +22,20 @@ while True:
         print("Bot: Goodbye!")
         break
 
+    # 1️⃣ Add user message to conversation
     messages.append({"role": "user", "content": user_input})
 
+    # 2️⃣ Send FULL conversation to model
     response = client.responses.create(
         model="openai/gpt-oss-20b",
         input=messages
     )
 
-    # ✅ CORRECT extraction
-    bot_reply = response.output[0].content[0].text
+    # 3️⃣ Extract model reply
+    bot_reply = response.output_text
 
+    # 4️⃣ Print reply
     print("Bot:", bot_reply)
 
+    # 5️⃣ Save assistant reply (memory)
     messages.append({"role": "assistant", "content": bot_reply})
