@@ -1,5 +1,13 @@
+from fastapi import FastAPI
+from pydantic import BaseModel
 from openai import OpenAI
 import os
+
+# -----------------------
+# Setup
+# -----------------------
+
+app = FastAPI()
 
 client = OpenAI(
     api_key=os.environ["GROQ_API_KEY"],
@@ -9,33 +17,40 @@ client = OpenAI(
 SYSTEM_PROMPT = """
 You are StudyBot.
 You explain AI concepts clearly and step by step.
+You use simple language and examples.
+You are friendly and patient.
 """
 
-messages = [
-    {"role": "system", "content": SYSTEM_PROMPT}
-]
+# -----------------------
+# Request / Response Models
+# -----------------------
 
-while True:
-    user_input = input("You: ")
+class ChatRequest(BaseModel):
+    messages: list[dict]
 
-    if user_input.lower() == "exit":
-        print("Bot: Goodbye!")
-        break
+class ChatResponse(BaseModel):
+    reply: str
 
-    # 1️⃣ Add user message to conversation
-    messages.append({"role": "user", "content": user_input})
+# -----------------------
+# Routes
+# -----------------------
 
-    # 2️⃣ Send FULL conversation to model
+@app.post("/chat", response_model=ChatResponse)
+def chat(req: ChatRequest):
+    # 1️⃣ Start with system prompt
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+
+    # 2️⃣ Add conversation history from client
+    messages.extend(req.messages)
+
+    # 3️⃣ Call the model
     response = client.responses.create(
         model="openai/gpt-oss-20b",
         input=messages
     )
 
-    # 3️⃣ Extract model reply
+    # 4️⃣ Extract reply
     bot_reply = response.output_text
 
-    # 4️⃣ Print reply
-    print("Bot:", bot_reply)
-
-    # 5️⃣ Save assistant reply (memory)
-    messages.append({"role": "assistant", "content": bot_reply})
+    # 5️⃣ Return JSON
+    return {"reply": bot_reply}
